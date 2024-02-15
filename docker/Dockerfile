@@ -1,14 +1,14 @@
 # Base image for chromoscope/v0.1.1,
-# uses Ubuntu Noble (LTS)
-FROM ubuntu:24.04
+# uses node/18 (debian bookworm LTS)
+FROM node:18-bookworm-slim
 
 # Depedencies of chromoscope/v0.1.1:
-#  - yarnpkg (1.22.19): Fast, reliable and secure npm alternative
-#  - python3 (3.11.4): Interactive high-level object-oriented language
-#  - python3-pip (23.3): Python package installer
+#  - yarn: Fast, reliable and secure npm alternative
+#  - python3: Interactive high-level object-oriented language
+#  - python3-pip: Python package installer
 
 LABEL maintainer="Skyler Kuhn <kuhnsa AT nih.gov>" \
-    base_image="ubuntu:24.04" \
+    base_image="node:18_debian:12" \
     version="v0.1.1"   \
     software="chromoscope" \
     about.summary="Docker image for OpenOmics/chromoscope" \
@@ -36,12 +36,7 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
 RUN apt-get update \
     && apt-get -y upgrade \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y \
-        apt-transport-https \
-        autotools-dev \
-        automake \
-        autoconf \
         build-essential \
-        bcftools \
         ca-certificates \
         curl \
         gawk \
@@ -49,14 +44,10 @@ RUN apt-get update \
         grep \
         gzip \
         locales \
-        samtools \
         unzip \
-        vcftools \
         wget \
         zlib1g-dev \
         # Install chromoscope dependencies
-        npm \
-        yarnpkg \
         python3 \
         python3-pip \
     && apt-get clean && apt-get purge \
@@ -69,26 +60,20 @@ RUN localedef -i en_US -f UTF-8 en_US.UTF-8
 # and install Python Packages 
 RUN ln -sf /usr/bin/python3 /usr/bin/python
 RUN pip3 install --upgrade pip  --break-system-packages \
-	&& pip3 install argparse  --break-system-packages \
+	&& pip3 install argparse --break-system-packages \
     && pip3 install chromoscope --break-system-packages 
-
 
 ############### MANUAL ################
 # Install tools from src manually
 # Install chromoscope/v0.1.1 from 
 # Github: https://github.com/OpenOmics/chromoscope.git
-RUN mkdir -p /opt2/chromoscope/v0.1.1/ \
-    && git clone https://github.com/OpenOmics/chromoscope.git --branch master --single-branch /opt2/chromoscope/v0.1.1/ \
-    && cd /opt2/chromoscope/v0.1.1/ \
-    && rm package-lock.json \
-    && npm install -g yarn \
-    && yarn install 
-
+RUN mkdir -p /opt2/chromoscope/v0.1.1/ 
+COPY . /opt2/chromoscope/v0.1.1/
+RUN cd /opt2/chromoscope/v0.1.1/ \
+    && yarn install
 
 ################ POST #################
 # Add Dockerfile and export environment 
 # variables and update permissions
-ADD Dockerfile /opt2/chromoscope.dockerfile
-RUN chmod -R a+rX /opt2
-ENV PATH="/opt2:$PATH"
-CMD yarn --cwd /opt2/chromoscope/v0.1.1 start --host 
+ADD docker/Dockerfile /opt2/chromoscope.dockerfile
+CMD yarn --cwd /opt2/chromoscope/v0.1.1 start --host
